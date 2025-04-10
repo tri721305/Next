@@ -14,7 +14,6 @@ interface Props {
 const QuestionCard = ({
   question: { _id, title, tags, author, createdAt, upvotes, answers, views },
 }: Props) => {
-  console.log("author", title, author);
   return (
     <div className="card-wrapper rounded-[10px] p-9 sm:px-11">
       <div className="flex flex-col-reverse items-start justify-between gap-5 sm:flex-row">
@@ -46,6 +45,7 @@ const QuestionCard = ({
           href={ROUTES.PROFILE(author._id)}
           textStyles="body-medium text-dark400_light700"
           isAuthor
+          titleStyles="max-sm:hidden"
         />
 
         <div className="flex items-center gap-3 max-sm:flex-wrap max-sm:justify-start">
