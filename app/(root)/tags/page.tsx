@@ -3,7 +3,7 @@ import DataRenderer from "@/components/DataRenderer";
 import LocalSearch from "@/components/search/LocalSearch";
 import ROUTES from "@/constants/routes";
 import { EMPTY_TAGS } from "@/constants/states";
-import { getTags } from "@/lib/actions/tag.actions";
+import { getTags } from "@/lib/actions/tag.action";
 import React from "react";
 
 const Tags = async ({ searchParams }: RouteParams) => {
@@ -11,7 +11,6 @@ const Tags = async ({ searchParams }: RouteParams) => {
   const { success, data, error } = await getTags({
     page: 1,
     pageSize: 10,
-    // query: "back",
     query: query,
     filter: filter,
   });
