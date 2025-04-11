@@ -1,12 +1,15 @@
 import TagCard from "@/components/cards/TagCard";
 import Preview from "@/components/editor/Preview";
+import AnswerForm from "@/components/forms/AnswerForm";
 import Metric from "@/components/Metric";
 import UserAvatar from "@/components/UserAvatar";
 import ROUTES from "@/constants/routes";
 import { getQuestion, incrementViews } from "@/lib/actions/question.action";
 import { formatNumber, getTimeStamp } from "@/lib/utils";
+import console from "console";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { unstable_after as after } from "next/server";
 import { title } from "process";
 import React from "react";
 // import View from "../View";
@@ -95,12 +98,13 @@ Looking forward to your suggestions and examples!
 const QuestionDetails = async ({ params }: RouteParams) => {
   const { id } = await params;
 
-  const [_, { success, data: question }] = await Promise.all([
-    await incrementViews({ questionId: id }),
-    await getQuestion({
-      questionId: id,
-    }),
-  ]);
+  const { success, data: question } = await getQuestion({
+    questionId: id,
+  });
+
+  after(async () => {
+    await incrementViews({ questionId: id });
+  });
 
   // await incrementViews({ questionId: id });
   // const { success, data: question } = await getQuestion({
@@ -170,6 +174,10 @@ const QuestionDetails = async ({ params }: RouteParams) => {
           />
         ))}
       </div>
+
+      <section className="my-5">
+        <AnswerForm />
+      </section>
     </>
   );
 };
