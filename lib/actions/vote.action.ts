@@ -1,6 +1,11 @@
-"user server";
+"use server";
 
+import mongoose, { ClientSession } from "mongoose";
+import { revalidatePath } from "next/cache";
+
+import ROUTES from "@/constants/routes";
 import { Answer, Question, Vote } from "@/database";
+
 import action from "../handlers/action";
 import handleError from "../handlers/error";
 import {
@@ -8,7 +13,15 @@ import {
   HasVotedSchema,
   UpdateVoteCountSchema,
 } from "../validations";
-import mongoose, { ClientSession } from "mongoose";
+
+// import { Answer, Question, Vote } from "@/database";
+// import action from "../handlers/action";
+// import handleError from "../handlers/error";
+// import {
+//   CreateVoteSchema,
+//   HasVotedSchema,
+//   UpdateVoteCountSchema,
+// } from "../validations";
 
 export async function updateVoteCount(
   params: UpdateVoteCountParams,
@@ -29,7 +42,7 @@ export async function updateVoteCount(
   const voteField = voteType === "upvote" ? "upvotes" : "downvotes";
 
   try {
-    const result = await Model.findOneAndUpdate(
+    const result = await Model.findByIdAndUpdate(
       targetId,
       {
         $inc: { [voteField]: change },
@@ -64,20 +77,19 @@ export async function createVote(
   });
 
   if (validationResult instanceof Error) {
-    return handleError(validationResult) as ActionResponse;
+    return handleError(validationResult) as ErrorResponse;
   }
 
   const { targetId, targetType, voteType } = validationResult.params!;
   const userId = validationResult.session?.user?.id;
 
   if (!userId) {
-    return handleError(new Error("Unauthorized")) as ActionResponse;
+    return handleError(new Error("Unauthorized")) as ErrorResponse;
   }
 
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  console.log("session: ", session);
   try {
     const existingVote = await Vote.findOne({
       author: userId,
@@ -113,6 +125,15 @@ export async function createVote(
           {
             targetId,
             targetType,
+            voteType: existingVote.voteType,
+            change: -1,
+          },
+          session
+        );
+        await updateVoteCount(
+          {
+            targetId,
+            targetType,
             voteType,
             change: 1,
           },
@@ -125,10 +146,10 @@ export async function createVote(
       await Vote.create(
         [
           {
-            targetId,
-            targetType,
+            author: userId,
+            actionId: targetId,
+            actionType: targetType,
             voteType,
-            change: 1,
           },
         ],
         { session }
@@ -146,6 +167,8 @@ export async function createVote(
 
     await session.commitTransaction();
     session.endSession();
+
+    revalidatePath(ROUTES.QUESTION(targetId));
     return { success: true };
   } catch (error) {
     await session.abortTransaction();
@@ -154,7 +177,7 @@ export async function createVote(
   }
 }
 
-export async function hasVotes(
+export async function hasVoted(
   params: HasVotedParams
 ): Promise<ActionResponse<HasVotedResponse>> {
   const validationResult = await action({
@@ -164,10 +187,11 @@ export async function hasVotes(
   });
 
   if (validationResult instanceof Error) {
-    return handleError(validationResult) as ActionResponse;
+    return handleError(validationResult) as ErrorResponse;
   }
 
-  const { targetId, targetType } = validationResult.params;
+  const { targetId, targetType } = validationResult.params!;
+
   const userId = validationResult.session?.user?.id;
 
   try {
@@ -181,19 +205,19 @@ export async function hasVotes(
       return {
         success: false,
         data: {
-          hasUpVoted: false,
-          hasDownVoted: false,
+          hasUpvoted: false,
+          hasDownvoted: false,
         },
       };
     }
     return {
       success: true,
       data: {
-        hasUpVoted: vote.voteType === "upvote",
-        hasDownVoted: vote.voteType === "downvote",
+        hasUpvoted: vote.voteType === "upvote",
+        hasDownvoted: vote.voteType === "downvote",
       },
     };
   } catch (error) {
-    return handleError(error) as ActionResponse;
+    return handleError(error) as ErrorResponse;
   }
 }
