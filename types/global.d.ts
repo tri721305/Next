@@ -59,3 +59,21 @@ interface Answer {
   upvotes: number;
   downvotes: number;
 }
+
+interface Collection {
+  _id: string;
+  author: string | Author;
+  question: Question;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  bio?: string;
+  image?: string;
+  location?: string;
+  portfolio?: string;
+  reputation?: number;
+}
