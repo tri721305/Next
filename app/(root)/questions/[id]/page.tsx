@@ -12,11 +12,9 @@ import { hasSavedQuestion } from "@/lib/actions/collection.action";
 import { getQuestion, incrementViews } from "@/lib/actions/question.action";
 import { hasVoted } from "@/lib/actions/vote.action";
 import { formatNumber, getTimeStamp } from "@/lib/utils";
-import console from "console";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { unstable_after as after } from "next/server";
-import { title } from "process";
 import React, { Suspense } from "react";
 // import View from "../View";
 
@@ -101,9 +99,10 @@ Looking forward to your suggestions and examples!
   },
 };
 
-const QuestionDetails = async ({ params }: RouteParams) => {
+const QuestionDetails = async ({ params, searchParams }: RouteParams) => {
   const { id } = await params;
 
+  const { page, pageSize, filter } = await searchParams;
   const { success, data: question } = await getQuestion({
     questionId: id,
   });
@@ -120,9 +119,9 @@ const QuestionDetails = async ({ params }: RouteParams) => {
     error: answersError,
   } = await getAnswers({
     questionId: id,
-    page: 1,
-    pageSize: 10,
-    filter: "latest",
+    page: Number(page) || 1,
+    pageSize: Number(pageSize) || 10,
+    filter,
   });
 
   const hasVotedPromise = hasVoted({
@@ -135,6 +134,7 @@ const QuestionDetails = async ({ params }: RouteParams) => {
   });
   const { author, createdAt, answers, views, tags, content, title } = question;
 
+  console.log(answersResult);
   return (
     <>
       <div className="flex-start w-full flex-col">
@@ -212,6 +212,8 @@ const QuestionDetails = async ({ params }: RouteParams) => {
 
       <section className="my-5">
         <AllAnswers
+          page={Number(page) || 1}
+          isNext={answersResult?.isNext || false}
           data={answersResult?.answers}
           success={areAnswersLoaded}
           error={answersError}

@@ -11,6 +11,7 @@ import DataRenderer from "@/components/DataRenderer";
 import { EMPTY_QUESTION } from "@/constants/states";
 import CommonFilter from "@/components/filters/CommonFilter";
 import { HomePageFilters } from "@/constants/filters";
+import Pagination from "@/components/Pagination";
 
 const questions = [
   {
@@ -62,12 +63,12 @@ const Home = async ({ searchParams }: SearchParams) => {
 
   const { success, data, error } = await getQuestions({
     page: Number(page) || 1,
-    pageSize: Number(pageSize) || 10,
+    pageSize: Number(pageSize) || 2,
     query: query || "",
     filter: filter || "",
   });
 
-  const { questions } = data || {};
+  const { questions, isNext } = data || {};
 
   return (
     <>
@@ -108,25 +109,7 @@ const Home = async ({ searchParams }: SearchParams) => {
           </div>
         )}
       />
-      {/* {success ? (
-        <div className="mt-10 flex w-full flex-col gap-6">
-          {questions && questions.length > 0 ? (
-            questions.map((question) => (
-              <QuestionCard key={question._id} question={question} />
-            ))
-          ) : (
-            <div className="mt-10 flex w-full items-center justify-center">
-              <p className="text-dark400_light700">No questions found</p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="mt-10 flex-center w-full">
-          <p className="text-dark400_light700">
-            {error?.message || "Failed to fetch questions"}
-          </p>
-        </div>
-      )} */}
+      <Pagination isNext={isNext || false} page={page} />
     </>
   );
 };

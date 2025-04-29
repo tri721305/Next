@@ -1,3 +1,6 @@
+import { PaginatedSearchParamsSchema } from "@/lib/validations";
+import { extend } from "dayjs";
+
 interface SignInWithOAuthParams {
   provider: "github" | "google";
   providerAccountId: string;
@@ -57,4 +60,21 @@ interface HasVotedResponse {
 
 interface CollectionBaseParams {
   questionId: string;
+}
+
+interface GetUserParams {
+  userId: string;
+}
+
+interface GetUserQuestionsParams
+  extends Omit<PaginatedSearchParamsSchema, "query" | "filter" | "sort"> {
+  userId: string;
+}
+
+interface GetUserAnswersParams extends PaginatedSearchParams {
+  userId: string;
+}
+
+interface GetUserTagsParams {
+  userId: string;
 }

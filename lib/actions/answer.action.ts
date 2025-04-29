@@ -112,14 +112,14 @@ export async function getAnswers(params: GetAnswersParams): Promise<
     const totalAnswers = await Answer.countDocuments({
       question: questionId,
     });
-
+    console.log("totalanswer", totalAnswers);
     const answers = await Answer.find({ question: questionId })
       .populate("author", "_id name image")
       .sort(sortCriteria)
       .skip(skip)
       .limit(limit);
-
-    const isNext = totalAnswers > skip * answers.length;
+    console.log("skip", skip, answers.length);
+    const isNext = totalAnswers > skip + answers.length;
 
     return {
       success: true,
