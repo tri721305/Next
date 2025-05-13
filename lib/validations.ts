@@ -1,7 +1,3 @@
-import { Interaction } from "@/database";
-import { InteractionActionEnums } from "@/database/interaction.model";
-import { extend } from "dayjs";
-import { use } from "react";
 import { z } from "zod";
 
 export const SignInSchema = z.object({
@@ -233,7 +229,16 @@ export const DeleteAnswerSchema = z.object({
 });
 
 export const CreateInteractionSchema = z.object({
-  action: z.enum(InteractionActionEnums),
+  action: z.enum([
+    "view",
+    "upvote",
+    "downvote",
+    "bookmark",
+    "post",
+    "edit",
+    "delete",
+    "search",
+  ]),
   actionTarget: z.enum(["question", "answer"]),
   actionId: z.string().min(1),
   authorId: z.string().min(1),
