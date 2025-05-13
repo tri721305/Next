@@ -4,6 +4,8 @@ import UserAvatar from "@/components/UserAvatar";
 import {
   getUser,
   getUserQuestions,
+  getUsersAnswers,
+  getUserStats,
   getUsersTopTags,
 } from "@/lib/actions/user.action";
 import { notFound } from "next/navigation";
@@ -17,10 +19,12 @@ import Stats from "@/components/user/Stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import page from "../../page";
 import DataRenderer from "@/components/DataRenderer";
-import { EMPTY_QUESTION, EMPTY_TAGS } from "@/constants/states";
+import { EMPTY_ANSWERS, EMPTY_QUESTION, EMPTY_TAGS } from "@/constants/states";
 import QuestionCard from "@/components/cards/QuestionCard";
 import Pagination from "@/components/Pagination";
 import TagCard from "@/components/cards/TagCard";
+import AnswerCard from "@/components/cards/AnswerCard";
+import { title } from "process";
 
 const Profile = async ({ params, searchParams }: RouteParams) => {
   const { id } = await params;
@@ -42,6 +46,8 @@ const Profile = async ({ params, searchParams }: RouteParams) => {
 
   const { user, totalQuestions, totalAnswers } = data!;
 
+  const { data: userStats } = await getUserStats({ userId: id });
+
   const {
     success: userQuestionsSuccess,
     data: userQuestions,
@@ -60,10 +66,25 @@ const Profile = async ({ params, searchParams }: RouteParams) => {
     userId: id,
   });
 
+  const {
+    success: userAnswersSuccess,
+    data: userAnswers,
+    error: userAnswersError,
+  } = await getUsersAnswers({
+    userId: id,
+    page: Number(page) || 1,
+    pageSize: Number(pageSize) || 10,
+  });
+
+  const { answers, isNext: hasMoreAnswers } = userAnswers!;
+
   const { questions, isNext: hasMoreQuestions } = userQuestions!;
+
   const { _id, name, image, portfolio, location, createdAt, username, bio } =
     user;
   const { tags } = userTopTags!;
+
+  console.log("userStats", user);
   return (
     <>
       <section className="flex flex-col-reverse items-start justify-between sm:flex-row">
@@ -84,21 +105,20 @@ const Profile = async ({ params, searchParams }: RouteParams) => {
               {portfolio && (
                 <ProfileLink
                   imgUrl="/icons/link.svg"
-                  href={portfolio}
+                  href={user.portfolio}
                   title="Portfolio"
                 />
               )}
-              {location && (
+              {user.location && (
                 <ProfileLink
                   imgUrl="/icons/location.svg"
-                  href={location}
-                  title="Location"
+                  title={user.location || ""}
+                  href=""
                 />
               )}
               {createdAt && (
                 <ProfileLink
                   imgUrl="/icons/calendar.svg"
-                  href={createdAt}
                   title={dayjs(createdAt).format("MMMM YYYY")}
                 />
               )}
@@ -121,13 +141,16 @@ const Profile = async ({ params, searchParams }: RouteParams) => {
         </div>
       </section>
       <Stats
-        totalQuestions={totalQuestions}
-        totalAnswers={totalAnswers}
-        badges={{
-          GOLD: 0,
-          SILVER: 0,
-          BRONZE: 0,
-        }}
+        totalQuestions={userStats?.totalQuestions || 0}
+        totalAnswers={userStats?.totalAnswers || 0}
+        badges={
+          userStats?.badges || {
+            GOLD: 0,
+            SILVER: 0,
+            BRONZE: 0,
+          }
+        }
+        reputationPoints={user.reputation || 0}
       />
 
       <section className="mt-10 flex gap-10">
@@ -153,14 +176,45 @@ const Profile = async ({ params, searchParams }: RouteParams) => {
               render={(hotQuestions) => (
                 <div className="flex w-full flex-col gap-6 ">
                   {questions.map((question) => (
-                    <QuestionCard key={question._id} question={question} />
+                    <QuestionCard
+                      showActionBtns={
+                        loggedInUser?.user?.id === question.author._id
+                      }
+                      key={question._id}
+                      question={question}
+                    />
                   ))}
                 </div>
               )}
             />
             <Pagination page={page} isNext={hasMoreQuestions} />
           </TabsContent>
-          <TabsContent value="answers">List of Answers</TabsContent>
+          <TabsContent value="answers">
+            List of Answers
+            <DataRenderer
+              data={answers}
+              empty={EMPTY_ANSWERS}
+              success={userAnswersSuccess}
+              error={userAnswersError}
+              render={(answers) => (
+                <div className="flex w-full flex-col gap-6 ">
+                  {answers.map((answer) => (
+                    <AnswerCard
+                      key={answer._id}
+                      {...answer}
+                      content={answer.content.slice(0, 27)}
+                      containerClasses="card-wrapper rounded-[10px] px-7 py-9 sm:px-11"
+                      showReadMore
+                      showActionBtns={
+                        loggedInUser?.user?.id === answer.author._id
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            />
+            <Pagination page={page} isNext={hasMoreAnswers || false} />
+          </TabsContent>
         </Tabs>
 
         <div className="flex w-full min-w-[250px] flex-1 flex-col max-lg:hidden">

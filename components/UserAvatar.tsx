@@ -29,6 +29,7 @@ const UserAvatar = ({
     .toUpperCase()
     .slice(0, 2);
 
+  console.log("imageUrl", imageUrl);
   return (
     <Link href={ROUTES.PROFILE(id)}>
       <Avatar className={cn("relative", className)}>

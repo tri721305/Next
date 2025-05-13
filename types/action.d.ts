@@ -1,3 +1,5 @@
+import { ClientSession } from "mongoose";
+import { IInteractionDoc } from "@/database/interaction.model";
 import { PaginatedSearchParamsSchema } from "@/lib/validations";
 import { extend } from "dayjs";
 
@@ -77,4 +79,60 @@ interface GetUserAnswersParams extends PaginatedSearchParams {
 
 interface GetUserTagsParams {
   userId: string;
+}
+
+interface DeleteQuestionParams {
+  questionId: string;
+}
+
+interface DeleteAnswerParams {
+  answerId: string;
+}
+
+interface CreateInteractionParams {
+  action:
+    | "view"
+    | "upvote"
+    | "downvote"
+    | "bookmark"
+    | "post"
+    | "edit"
+    | "delete"
+    | "search";
+  actionId: string;
+  authorId: string;
+  actionTarget: "question" | "answer";
+}
+
+interface UpdateReputationParams {
+  interaction: IInteractionDoc;
+  session: mongoose.ClientSession;
+  performerId: string;
+  authorId: string;
+}
+interface GetAnswersParams extends PaginatedSearchParams {
+  questionId: string;
+}
+interface CreateAnswerParams {
+  content: string;
+  questionId: string;
+}
+
+interface RecommendationParams {
+  userId: string;
+  query?: string;
+  skip: number;
+  limit: number;
+}
+
+interface UpdateUserParams {
+  name?: string;
+  username?: string;
+  email?: string;
+  image?: string;
+  password?: string;
+}
+interface GlobalSearchParams {
+  query: string;
+  type: string | null;
 }

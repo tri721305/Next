@@ -4,10 +4,21 @@ import Answer, { IAnswerDoc } from "@/database/answer.model";
 import action from "../handlers/action";
 import handleError from "../handlers/error";
 import mongoose from "mongoose";
-import { Question } from "@/database";
+import { Question, Vote } from "@/database";
 import { revalidatePath } from "next/cache";
 import ROUTES from "@/constants/routes";
-import { AnswerServerSchema, GetAnswersSchema } from "../validations";
+import {
+  AnswerServerSchema,
+  DeleteAnswerSchema,
+  GetAnswersSchema,
+} from "../validations";
+import {
+  CreateAnswerParams,
+  DeleteAnswerParams,
+  GetAnswersParams,
+} from "@/types/action";
+import { createInteraction } from "./interaction.action";
+import { after } from "node:test";
 export async function createAnswer(
   params: CreateAnswerParams
 ): Promise<ActionResponse<IAnswerDoc>> {
@@ -48,6 +59,16 @@ export async function createAnswer(
     question.answer += 1;
 
     await question.save({ session });
+
+    // Create interaction
+    after(async () => {
+      await createInteraction({
+        action: "post",
+        actionId: newAnswer._id.toString(),
+        actionTarget: "answer",
+        authorId: userId as string,
+      });
+    });
 
     await session.commitTransaction();
 
@@ -112,13 +133,11 @@ export async function getAnswers(params: GetAnswersParams): Promise<
     const totalAnswers = await Answer.countDocuments({
       question: questionId,
     });
-    console.log("totalanswer", totalAnswers);
     const answers = await Answer.find({ question: questionId })
       .populate("author", "_id name image")
       .sort(sortCriteria)
       .skip(skip)
       .limit(limit);
-    console.log("skip", skip, answers.length);
     const isNext = totalAnswers > skip + answers.length;
 
     return {
@@ -129,7 +148,53 @@ export async function getAnswers(params: GetAnswersParams): Promise<
         totalAnswers,
       },
     };
-    console.log("answer", answers);
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function deleteAnswer(
+  params: DeleteAnswerParams
+): Promise<ActionResponse> {
+  const validationResult = await action({
+    params,
+    schema: DeleteAnswerSchema,
+    authorize: true,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { answerId } = validationResult.params!;
+  const { user } = validationResult.session!;
+
+  try {
+    const answer = await Answer.findById(answerId);
+
+    if (!answer) throw new Error("Answer not found");
+    if (answer.author.toString() !== user?.id)
+      throw new Error("You are not authorized to delete this answer");
+
+    // REDUCE THE QUESTION ANSWERS COUNT
+    await Question.findByIdAndUpdate(
+      answer.question,
+      {
+        $inc: { answers: -1 },
+      },
+      { new: true }
+    );
+
+    await Vote.deleteMany({
+      actionId: answerId,
+      actionType: "answer",
+    });
+
+    await Answer.findByIdAndDelete(answerId);
+
+    revalidatePath(`/profile/${user?.id}`);
+
+    return { success: true };
   } catch (error) {
     return handleError(error) as ErrorResponse;
   }

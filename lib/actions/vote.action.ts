@@ -13,15 +13,14 @@ import {
   HasVotedSchema,
   UpdateVoteCountSchema,
 } from "../validations";
-
-// import { Answer, Question, Vote } from "@/database";
-// import action from "../handlers/action";
-// import handleError from "../handlers/error";
-// import {
-//   CreateVoteSchema,
-//   HasVotedSchema,
-//   UpdateVoteCountSchema,
-// } from "../validations";
+import {
+  CreateVoteParams,
+  HasVotedParams,
+  HasVotedResponse,
+  UpdateVoteCountParams,
+} from "@/types/action";
+import { createInteraction } from "./interaction.action";
+import { after } from "node:test";
 
 export async function updateVoteCount(
   params: UpdateVoteCountParams,
@@ -91,6 +90,14 @@ export async function createVote(
   session.startTransaction();
 
   try {
+    const Model = targetType === "question" ? Question : Answer;
+
+    const contentDoc = await Model.findById(targetId).session(session);
+
+    if (!contentDoc) throw new Error("Content not found");
+
+    const contentAuthorId = contentDoc.author.toString();
+
     const existingVote = await Vote.findOne({
       author: userId,
       actionId: targetId,
@@ -164,6 +171,15 @@ export async function createVote(
         session
       );
     }
+
+    after(async () => {
+      await createInteraction({
+        action: voteType,
+        actionId: targetId,
+        actionTarget: targetType,
+        authorId: contentAuthorId,
+      });
+    });
 
     await session.commitTransaction();
     session.endSession();

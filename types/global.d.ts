@@ -59,6 +59,7 @@ interface Answer {
   createdAt: Date;
   upvotes: number;
   downvotes: number;
+  question: string;
 }
 
 interface Collection {
@@ -84,4 +85,16 @@ interface BadgeCounts {
   GOLD: number;
   SILVER: number;
   BRONZE: number;
+}
+
+interface GlobalSearchedItem {
+  id: string;
+  type: "question" | "answer" | "user" | "tag";
+  title: string;
+}
+
+interface UrlQueryParams {
+  params: string;
+  key: string;
+  value: string | null;
 }

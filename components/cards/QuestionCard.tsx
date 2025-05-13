@@ -6,18 +6,22 @@ import { getTimeStamp } from "@/lib/utils";
 
 import TagCard from "./TagCard";
 import Metric from "../Metric";
+import EditDeleteAction from "../user/EditDeleteAction";
 
 interface Props {
   question: Question;
+  showActionBtns?: boolean;
 }
 
 const QuestionCard = ({
   question: { _id, title, tags, author, createdAt, upvotes, answers, views },
+  showActionBtns = false,
 }: Props) => {
+  console.log("question", author, title, createdAt);
   return (
     <div className="card-wrapper rounded-[10px] p-9 sm:px-11">
-      <div className="flex flex-col-reverse items-start justify-between gap-5 sm:flex-row">
-        <div>
+      <div className="flex flex-col-reverse items-center justify-between gap-5 sm:flex-row">
+        <div className="flex-1">
           <span className="subtle-regular text-dark400_light700 line-clamp-1 flex sm:hidden">
             {getTimeStamp(createdAt)}
           </span>
@@ -28,6 +32,8 @@ const QuestionCard = ({
             </h3>
           </Link>
         </div>
+
+        {showActionBtns && <EditDeleteAction type="Question" itemId={_id} />}
       </div>
 
       <div className="mt-3.5 flex w-full flex-wrap gap-2">
@@ -37,16 +43,18 @@ const QuestionCard = ({
       </div>
 
       <div className="flex-between mt-6 w-full flex-wrap gap-3">
-        <Metric
-          imgUrl={author.image}
-          alt={author.name}
-          value={author.name}
-          title={`• asked ${getTimeStamp(createdAt)}`}
-          href={ROUTES.PROFILE(author._id)}
-          textStyles="body-medium text-dark400_light700"
-          isAuthor
-          titleStyles="max-sm:hidden"
-        />
+        {author.image && (
+          <Metric
+            imgUrl={author.image || ""}
+            alt={author.name}
+            value={author.name}
+            title={`• asked ${getTimeStamp(createdAt)}`}
+            href={ROUTES.PROFILE(author._id)}
+            textStyles="body-medium text-dark400_light700"
+            isAuthor
+            titleStyles="max-sm:hidden"
+          />
+        )}
 
         <div className="flex items-center gap-3 max-sm:flex-wrap max-sm:justify-start">
           <Metric

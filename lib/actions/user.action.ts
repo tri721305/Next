@@ -3,15 +3,21 @@
 import { FilterQuery, PipelineStage, Types } from "mongoose";
 import action from "../handlers/action";
 import handleError from "../handlers/error";
-import { GetUserSchema, PaginatedSearchParamsSchema } from "../validations";
+import {
+  GetUserSchema,
+  PaginatedSearchParamsSchema,
+  UpdateUserSchema,
+} from "../validations";
 import { Answer, Question, User } from "@/database";
 import {
   GetUserAnswersParams,
   GetUserParams,
   GetUserQuestionsParams,
   GetUserTagsParams,
+  UpdateUserParams,
 } from "@/types/action";
 import page from "@/app/(root)/page";
+import { assignBadges } from "../utils";
 
 export async function getUsers(params: PaginatedSearchParams): Promise<
   ActionResponse<{
@@ -180,7 +186,7 @@ export async function getUserQuestions(params: GetUserQuestionsParams): Promise<
 
 export async function getUsersAnswers(params: GetUserAnswersParams): Promise<
   ActionResponse<{
-    questions: Question[];
+    answers: Answer[];
     isNext: boolean;
   }>
 > {
@@ -199,24 +205,23 @@ export async function getUsersAnswers(params: GetUserAnswersParams): Promise<
   const limit = pageSize;
 
   try {
-    const totalQuestions = await Question.countDocuments({
+    const totalAnswers = await Answer.countDocuments({
       author: userId,
     });
 
-    const questions = await Question.find({
+    const answers = await Answer.find({
       author: userId,
     })
-      .populate("tags", "name")
-      .populate("author", "name image")
+      .populate("author", "_id name image")
       .skip(skip)
       .limit(limit);
 
-    const isNext = totalQuestions > skip + questions.length;
+    const isNext = totalAnswers > skip + answers.length;
 
     return {
       success: true,
       data: {
-        questions: JSON.parse(JSON.stringify(questions)),
+        answers: JSON.parse(JSON.stringify(answers)),
         isNext,
       },
     };
@@ -283,6 +288,107 @@ export async function getUsersTopTags(params: GetUserTagsParams): Promise<
       data: {
         tags: JSON.parse(JSON.stringify(tags)),
       },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function getUserStats(params: GetUserParams): Promise<
+  ActionResponse<{
+    totalQuestions: number;
+    totalAnswers: number;
+    badges: BadgeCounts;
+  }>
+> {
+  const validationResult = await action({
+    params,
+    schema: GetUserSchema,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { userId } = params;
+
+  try {
+    const [questionStats] = await Question.aggregate([
+      { $match: { author: new Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          upvotes: { $sum: "$upvotes" },
+          views: { $sum: "$views" },
+        },
+      },
+    ]);
+
+    const [answerStats] = await Answer.aggregate([
+      { $match: { author: new Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          upvotes: { $sum: "$upvotes" },
+        },
+      },
+    ]);
+
+    const badges = assignBadges({
+      criteria: [
+        { type: "ANSWER_COUNT", count: answerStats.count },
+        {
+          type: "QUESTION_COUNT",
+          count: questionStats.count,
+        },
+        {
+          type: "QUESTION_UPVOTES",
+          count: questionStats.upvotes + answerStats.upvotes,
+        },
+        {
+          type: "TOTAL_VIEWS",
+          count: questionStats.views,
+        },
+      ],
+    });
+    return {
+      success: true,
+      data: {
+        totalQuestions: questionStats.count,
+        totalAnswers: answerStats.count,
+        badges,
+      },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function updateUser(
+  params: UpdateUserParams
+): Promise<ActionResponse<{ user: User }>> {
+  const validationResult = await action({
+    params,
+    schema: UpdateUserSchema,
+    authorize: true,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { user } = validationResult.session!;
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(user?.id, params, {
+      new: true,
+    });
+
+    return {
+      success: true,
+      data: { user: JSON.parse(JSON.stringify(updatedUser)) },
     };
   } catch (error) {
     return handleError(error) as ErrorResponse;

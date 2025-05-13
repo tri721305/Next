@@ -1,8 +1,12 @@
 import mongoose, { Mongoose } from "mongoose";
 
 import logger from "./logger";
+import "@/database";
 
-const MONGODB_URI = process.env.MONGODB_URI as string;
+// const MONGODB_URI = process.env.MONGODB_URI;
+
+const MONGODB_URI =
+  "mongodb+srv://peter:721305@devflow.ygsp0.mongodb.net/?retryWrites=true&w=majority&appName=DevFlow";
 
 if (!MONGODB_URI) {
   throw new Error("MONGODB_URI is not defined");

@@ -29,7 +29,7 @@ const Metric = ({
   const metricContent = (
     <>
       <Image
-        src={imgUrl}
+        src={imgUrl ? imgUrl : ""}
         width={16}
         height={16}
         alt={alt}
@@ -40,12 +40,9 @@ const Metric = ({
         {value}
 
         {title ? (
-          <span
-            className={cn(
-              `small-regular line-clamp-1 ${isAuthor ? "max-sm:hidden" : ""}`,
-              titleStyles
-            )}
-          ></span>
+          <span className={cn(`small-regular line-clamp-1`, titleStyles)}>
+            {title}
+          </span>
         ) : null}
       </p>
     </>

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { title } from "process";
 
 interface Props {
   imgUrl: string;
@@ -21,7 +22,7 @@ const ProfileLink = ({ imgUrl, href, title }: Props) => {
           {title}
         </Link>
       ) : (
-        <p className="pagagraph-medium text-dark400_light700">Title</p>
+        <p className="pagagraph-medium text-dark400_light700">{title}</p>
       )}
     </div>
   );
